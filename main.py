@@ -48,7 +48,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"Error deleting Firebase Admin SDK app: {e}")
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    root_path="/rides",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    lifespan=lifespan
+    )
 
 @app.get("/health")
 async def health_check():
