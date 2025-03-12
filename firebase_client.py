@@ -14,14 +14,20 @@ async def lifespan(app: FastAPI):
         })
         db = firestore.client(app=firebase_app, database_id="rides")
         rides_ref = db.collection("rides")
+        requests_ref = db.collection("ride_requests")
+        commutes_ref = db.collection("commutes")
         print("Firebase Admin SDK initialized successfully.")
     except Exception as e:
         print(f"Error initializing Firebase Admin SDK: {e}")
         rides_ref = None
+        requests_ref = None
+        commutes_ref = None
         db = None
         firebase_app = None
 
     app.state.rides_ref = rides_ref
+    app.state.requests_ref = requests_ref
+    app.state.commutes_ref = commutes_ref
     app.state.db = db
     app.state.firebase_app = firebase_app
     yield

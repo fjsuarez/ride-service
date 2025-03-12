@@ -11,6 +11,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
 # Include routers
 app.include_router(ride_routes.router)
 
