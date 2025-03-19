@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Request, Query
 from typing import List
-from models import Ride, RideRequest, Commute, RideRequestStatus
+from models import Ride, RideRequest, Commute, RideRequestStatus, RideDistance
 from services.ride_service import (
     get_all_rides, create_new_ride, get_ride_by_id, update_ride, cancel_ride,
     get_rides_by_driver, get_rides_for_rider, create_ride_request, 
@@ -13,7 +13,9 @@ router = APIRouter()
 @router.post("/commutes", response_model=Commute)
 async def create_commute(commute: Commute, request: Request):
     commutes_ref = request.app.state.commutes_ref
-    if not commutes_ref:
+    rides_ref = request.app.state.rides_ref
+    
+    if not commutes_ref or not rides_ref:
         raise HTTPException(status_code=500, detail="Firestore not initialized")
     
     user_id = request.headers.get("X-User-ID")
@@ -21,9 +23,27 @@ async def create_commute(commute: Commute, request: Request):
         raise HTTPException(status_code=403, detail="You can only create commutes for yourself")
     
     try:
+        # Get all rides
+        all_rides = rides_ref.stream()
+        
+        # Create RideDistance objects for each ride
+        ride_distances = []
+        for ride_doc in all_rides:
+            ride_data = ride_doc.to_dict()
+            ride_distance = RideDistance(
+                ride_id=ride_data.get("rideId"),
+                distance=1.0  # Default distance value as requested
+            )
+            ride_distances.append(ride_distance)
+        
+        # Set the ride_distances field in the commute
+        commute.ride_distances = ride_distances
+        
+        # Save the commute to Firestore
         commute_data = commute.model_dump()
         commute_ref = commutes_ref.document(commute.commuteId)
         commute_ref.set(commute_data)
+        
         return commute
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Error creating commute: {exc}")
@@ -152,6 +172,7 @@ async def get_ride(ride_id: str, request: Request):
 
 @router.post("/", response_model=Ride)
 async def create_ride(ride: Ride, request: Request):
+    print("creating ride...")
     rides_ref = request.app.state.rides_ref
     if not rides_ref:
         raise HTTPException(status_code=500, detail="Firestore not initialized")

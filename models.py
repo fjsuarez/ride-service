@@ -5,27 +5,9 @@ from enum import Enum
 from uuid import uuid4
 
 class Location(BaseModel):
+    address: str
     latitude: float
     longitude: float
-    address: str
-
-class Commute(BaseModel):
-    """User's regular commute pattern"""
-    commuteId: str = Field(default_factory=lambda: f"commute_{uuid4().hex}")
-    userId: str
-    startLocation: Location
-    endLocation: Location
-    preferredStartTime: datetime
-    preferredEndTime: datetime
-    daysOfWeek: List[str]
-    createdAt: datetime = Field(default_factory=datetime.now)
-    updatedAt: datetime = Field(default_factory=datetime.now)
-    
-    model_config = {
-        "json_encoders": {
-            datetime: lambda v: v.isoformat(),
-        }
-    }
 
 class RideRequestStatus(str, Enum):
     PENDING = "pending"
@@ -33,40 +15,31 @@ class RideRequestStatus(str, Enum):
     REJECTED = "rejected"
     CANCELLED = "cancelled"
 
-class RideRequest(BaseModel):
-    """Request from a rider to join a ride"""
-    requestId: str = Field(default_factory=lambda: f"req_{uuid4().hex}")
-    rideId: str
-    riderId: str
-    driverId: str
-    status: RideRequestStatus = RideRequestStatus.PENDING
-    pickupLocation: Location
-    dropoffLocation: Location
-    createdAt: datetime = Field(default_factory=datetime.now)
-    updatedAt: datetime = Field(default_factory=datetime.now)
-    walkingDistance: float = 0  # Calculated walking distance in meters
-
 class RiderDetail(BaseModel):
     """Details of a rider in a ride"""
-    pickupLocation: Location
     dropoffLocation: Location
-    rideStatus: RideRequestStatus
+    pickupLocation: Location
     requestId: str
+    rideStatus: RideRequestStatus
+
+class RideDistance(BaseModel):
+    ride_id: str
+    distance: float
 
 class Ride(BaseModel):
     """A ride offered by a driver"""
-    rideId: str
-    driverId: str
-    startLocation: Location
-    endLocation: Location
-    startTime: datetime
-    endTime: datetime
-    daysOfWeek: List[str] | None = None
     availableSeats: int
-    totalSeats: int
-    status: Literal["active", "cancelled", "completed"] = "active"
-    riders: Dict[str, RiderDetail] | None = None
     createdAt: datetime = Field(default_factory=datetime.now)
+    driverId: str
+    daysOfWeek: List[str] | None = None
+    endLocation: Location
+    endTime: datetime
+    rideId: str
+    riders: Dict[str, RiderDetail] | None = None
+    startLocation: Location
+    startTime: datetime
+    status: Literal["active", "cancelled", "completed"] = "active"
+    totalSeats: int
     updatedAt: datetime = Field(default_factory=datetime.now)
 
     model_config = {
@@ -74,3 +47,35 @@ class Ride(BaseModel):
             datetime: lambda v: v.isoformat(),
         }
     }
+
+class Commute(BaseModel):
+    """User's regular commute pattern"""
+    commuteId: str = Field(default_factory=lambda: f"commute_{uuid4().hex}")
+    createdAt: datetime = Field(default_factory=datetime.now)
+    daysOfWeek: List[str]
+    endLocation: Location
+    preferredEndTime: datetime
+    preferredStartTime: datetime
+    startLocation: Location
+    updatedAt: datetime = Field(default_factory=datetime.now)
+    userId: str
+    ride_distances: List[RideDistance] | None = None
+    
+    model_config = {
+        "json_encoders": {
+            datetime: lambda v: v.isoformat(),
+        }
+    }
+
+class RideRequest(BaseModel):
+    """Request from a rider to join a ride"""
+    createdAt: datetime = Field(default_factory=datetime.now)
+    driverId: str
+    dropoffLocation: Location
+    pickupLocation: Location
+    requestId: str = Field(default_factory=lambda: f"req_{uuid4().hex}")
+    rideId: str
+    riderId: str
+    status: RideRequestStatus = RideRequestStatus.PENDING
+    updatedAt: datetime = Field(default_factory=datetime.now)
+    walkingDistance: float = 0  # Calculated walking distance in meters

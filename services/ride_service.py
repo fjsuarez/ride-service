@@ -52,8 +52,8 @@ async def create_new_ride(ride: Ride, rides_ref):
         raise ValueError("Ride already exists")
     
     # Set total seats equal to available seats initially
-    if ride.totalSeats is None:
-        ride_data["totalSeats"] = ride_data["availableSeats"]
+    if ride.availableSeats is None:
+        ride_data["availableSeats"] = ride_data["totalSeats"]
     
     # Initialize empty riders dictionary if not provided
     if ride_data.get("riders") is None:
