@@ -78,4 +78,3 @@ class RideRequest(BaseModel):
     riderId: str
     status: RideRequestStatus = RideRequestStatus.PENDING
     updatedAt: datetime = Field(default_factory=datetime.now)
-    walkingDistance: float = 0  # Calculated walking distance in meters
