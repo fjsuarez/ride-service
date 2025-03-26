@@ -1,6 +1,7 @@
 from models import Ride, RideRequestStatus
 from datetime import datetime
 from uuid import uuid4
+from .utils import get_driving_route_polyline
 
 async def get_all_rides(rides_ref):
     """Get all rides from Firestore with validation error handling"""
@@ -58,6 +59,20 @@ async def create_new_ride(ride: Ride, rides_ref):
     # Initialize empty riders dictionary if not provided
     if ride_data.get("riders") is None:
         ride_data["riders"] = {}
+
+    if not ride_data.get("ridePolyline"):
+        start_coords = [ride.startLocation.latitude, ride.startLocation.longitude]
+        end_coords = [ride.endLocation.latitude, ride.endLocation.longitude]
+        
+        try:
+            polyline = await get_driving_route_polyline(start_coords, end_coords)
+            if polyline:
+                ride_data["ridePolyline"] = polyline
+                print(f"Route polyline generated for ride {ride.rideId}")
+            else:
+                print(f"Warning: Could not generate polyline for ride {ride.rideId}")
+        except Exception as exc:
+            print(f"Error generating polyline for ride {ride.rideId}: {exc}")
     
     # Create new ride document
     try:
@@ -73,7 +88,15 @@ async def update_ride(ride_id: str, updates: dict, rides_ref):
     
     if not ride_doc.exists:
         raise ValueError(f"Ride {ride_id} not found")
-    
+    ride_data = ride_doc.to_dict()
+    start_coords = [ride_data["startLocation"]["latitude"], ride_data["startLocation"]["longitude"]]
+    end_coords = [ride_data["endLocation"]["latitude"], ride_data["endLocation"]["longitude"]]
+    try:
+        polyline = await get_driving_route_polyline(start_coords, end_coords)
+        if polyline:
+            updates["ridePolyline"] = polyline
+    except Exception:
+        print(f"Warning: Could not generate polyline for ride {ride_id}")
     updates["updatedAt"] = datetime.now()
     
     try:

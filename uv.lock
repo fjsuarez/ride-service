@@ -247,7 +247,7 @@ source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-auth" },
     { name = "googleapis-common-protos" },
-    { name = "proto-plus", marker = "python_full_version >= '3.13'" },
+    { name = "proto-plus" },
     { name = "protobuf" },
     { name = "requests" },
 ]
@@ -258,8 +258,8 @@ wheels = [
 
 [package.optional-dependencies]
 grpc = [
-    { name = "grpcio", marker = "platform_python_implementation != 'PyPy'" },
-    { name = "grpcio-status", marker = "platform_python_implementation != 'PyPy'" },
+    { name = "grpcio", marker = "python_full_version >= '3.13'" },
+    { name = "grpcio-status", marker = "python_full_version >= '3.13'" },
 ]
 
 [[package]]
@@ -358,6 +358,37 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/67/72/c3298da1a3773102359c5a78f20dae8925f5ea876e37354415f68594a6fb/google_crc32c-1.6.0.tar.gz", hash = "sha256:6eceb6ad197656a1ff49ebfbbfa870678c75be4344feb35ac1edf694309413dc", size = 14472 }
 
 [[package]]
+name = "google-geo-type"
+version = "0.3.12"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core", extra = ["grpc"] },
+    { name = "google-auth" },
+    { name = "proto-plus" },
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7d/35/d65554978a3d32415fd68fff6ef37dc506fdebc91407586c566c25e508b1/google_geo_type-0.3.12.tar.gz", hash = "sha256:c2ebcafa9cb7774e731ab540cb23660f82e9b1a8e1917f04625e0334053ba52a", size = 13837 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e7/24/1f5405c7e7f65098855785b5c9c14245b045430a284ee5210a6136f9ee96/google_geo_type-0.3.12-py3-none-any.whl", hash = "sha256:a4009563938980d562139919d1f95a060c75e872301b96b8dd8ab2a8be8eb0de", size = 12606 },
+]
+
+[[package]]
+name = "google-maps-routing"
+version = "0.6.15"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-api-core", extra = ["grpc"] },
+    { name = "google-auth" },
+    { name = "google-geo-type" },
+    { name = "proto-plus" },
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/70/3b/9bc58ff4b337ae8e82c814dc78734944136ca72285574e2f25b19fefb665/google_maps_routing-0.6.15.tar.gz", hash = "sha256:c42b879961be4d4a37101e8fe1c0d734e49c6e7525927f5d7f5fb8b11e0eb50e", size = 75482 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5c/0e/d85f8e19a9acc6d3fd2b150c387aacad6a5738100c26183fbd7fcafc7087/google_maps_routing-0.6.15-py3-none-any.whl", hash = "sha256:d3b07db934430279bcd548fb3a465b2134a81bfb7f96e5c243954d0d4ca7d078", size = 97922 },
+]
+
+[[package]]
 name = "google-resumable-media"
 version = "2.7.2"
 source = { registry = "https://pypi.org/simple" }
@@ -403,9 +434,9 @@ name = "grpcio-status"
 version = "1.70.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "googleapis-common-protos", marker = "platform_python_implementation != 'PyPy'" },
-    { name = "grpcio", marker = "platform_python_implementation != 'PyPy'" },
-    { name = "protobuf", marker = "platform_python_implementation != 'PyPy'" },
+    { name = "googleapis-common-protos" },
+    { name = "grpcio" },
+    { name = "protobuf" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/4c/d1/2397797c810020eac424e1aac10fbdc5edb6b9b4ad6617e0ed53ca907653/grpcio_status-1.70.0.tar.gz", hash = "sha256:0e7b42816512433b18b9d764285ff029bde059e9d41f8fe10a60631bd8348101", size = 13681 }
 wheels = [
@@ -563,6 +594,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/7a/40/631c238f1f338eb09f4acb0f34ab5862c4e9d7eda11c1b685471a4c5ea37/msgpack-1.1.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:b4c01941fd2ff87c2a934ee6055bda4ed353a7846b8d4f341c428109e9fcde8c", size = 399082 },
     { url = "https://files.pythonhosted.org/packages/e9/1b/fa8a952be252a1555ed39f97c06778e3aeb9123aa4cccc0fd2acd0b4e315/msgpack-1.1.0-cp313-cp313-win32.whl", hash = "sha256:7c9a35ce2c2573bada929e0b7b3576de647b0defbd25f5139dcdaba0ae35a4cc", size = 69037 },
     { url = "https://files.pythonhosted.org/packages/b6/bc/8bd826dd03e022153bfa1766dcdec4976d6c818865ed54223d71f07862b3/msgpack-1.1.0-cp313-cp313-win_amd64.whl", hash = "sha256:bce7d9e614a04d0883af0b3d4d501171fbfca038f12c77fa838d9f198147a23f", size = 75140 },
+]
+
+[[package]]
+name = "polyline"
+version = "2.0.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1d/2f/e6a437b785d951867882b9fba52a70b81fe8af778bbb4d96b6fb69630f72/polyline-2.0.2.tar.gz", hash = "sha256:10541e759c5fd51f746ee304e9af94744089a4055b6257b293b3afd1df64e369", size = 6400 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d7/4f/fbf07370cbf98af0098de83a26625d29aaa0bf73ef7123b561459729f3e6/polyline-2.0.2-py3-none-any.whl", hash = "sha256:389655c893bdabf2863c6aaa49490cf83dcdcec86ae715f67044ee98be57bef5", size = 5970 },
 ]
 
 [[package]]
@@ -789,6 +829,8 @@ source = { virtual = "." }
 dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "firebase-admin" },
+    { name = "google-maps-routing" },
+    { name = "polyline" },
     { name = "pydantic-settings" },
     { name = "uvicorn" },
 ]
@@ -797,6 +839,8 @@ dependencies = [
 requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.8" },
     { name = "firebase-admin", specifier = ">=6.6.0" },
+    { name = "google-maps-routing", specifier = ">=0.6.15" },
+    { name = "polyline", specifier = ">=2.0.2" },
     { name = "pydantic-settings", specifier = ">=2.7.1" },
     { name = "uvicorn", specifier = ">=0.34.0" },
 ]

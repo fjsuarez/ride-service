@@ -64,6 +64,7 @@ async def create_commute(commute: Commute, request: Request):
 @router.put("/commutes/{commute_id}", response_model=Commute)
 async def update_commute_endpoint(commute_id: str, commute_update: Commute, request: Request):
     commutes_ref = request.app.state.commutes_ref
+    rides_ref = request.app.state.rides_ref
     
     if not commutes_ref:
         raise HTTPException(status_code=500, detail="Firestore not initialized")
@@ -77,7 +78,7 @@ async def update_commute_endpoint(commute_id: str, commute_update: Commute, requ
         raise HTTPException(status_code=400, detail="Commute ID in path must match commute ID in body")
     
     try:
-        return await update_commute(commute_id, commute_update, commutes_ref)
+        return await update_commute(commute_id, commute_update, commutes_ref, rides_ref)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as exc:

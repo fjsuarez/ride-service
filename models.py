@@ -23,8 +23,12 @@ class RiderDetail(BaseModel):
     rideStatus: RideRequestStatus
 
 class RideDistance(BaseModel):
-    ride_id: str
     distance: float
+    entry_point: Location | None = None
+    entry_polyline: str | None = None
+    exit_point: Location | None = None
+    exit_polyline: str | None = None
+    ride_id: str
 
 class Ride(BaseModel):
     """A ride offered by a driver"""
@@ -34,6 +38,7 @@ class Ride(BaseModel):
     daysOfWeek: List[str] | None = None
     endLocation: Location
     endTime: datetime
+    ridePolyline: str | None = None
     rideId: str
     riders: Dict[str, RiderDetail] | None = None
     startLocation: Location

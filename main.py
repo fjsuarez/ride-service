@@ -2,6 +2,11 @@ from fastapi import FastAPI
 from config import settings
 from firebase_client import lifespan
 from routes import ride_routes, commute_routes, request_routes
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 
 app = FastAPI(
     root_path="/rides",
