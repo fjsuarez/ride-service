@@ -41,6 +41,37 @@ async def create_ride(ride: Ride, request: Request):
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Error creating ride: {exc}")
 
+@router.get("/available", response_model=List[Ride])
+async def get_available_rides_endpoint(
+    request: Request,
+    max_distance: float = Query(5.0, description="Maximum walking distance in km")
+):
+    print(f"getting available rides with max_distance: {max_distance}")
+    print(f"request params: {request._query_params}")
+    rides_ref = request.app.state.rides_ref
+    commutes_ref = request.app.state.commutes_ref
+    if not rides_ref or not commutes_ref:
+        raise HTTPException(status_code=500, detail="Firestore not initialized")
+    
+    user_id = request.headers.get("X-User-ID")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Missing user ID")
+    
+    try:
+        # Get user's commute
+        commute_docs = commutes_ref.where("userId", "==", user_id).stream()
+        commute = None
+        for doc in commute_docs:
+            commute = Commute.model_validate(doc.to_dict())
+            break
+        
+        if not commute:
+            raise HTTPException(status_code=400, detail="No commute found, please create one first")
+        
+        return await get_available_rides(user_id, commute, max_distance, rides_ref, commutes_ref)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Error retrieving available rides: {exc}")
+
 @router.get("/{ride_id}", response_model=Ride)
 async def get_ride(ride_id: str, request: Request):
     rides_ref = request.app.state.rides_ref
@@ -95,35 +126,6 @@ async def delete_ride(ride_id: str, request: Request):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Error cancelling ride: {exc}")
-
-@router.get("/available/", response_model=List[Ride])
-async def get_available_rides_endpoint(
-    request: Request,
-    max_distance: float = Query(5.0, description="Maximum walking distance in km")
-):
-    rides_ref = request.app.state.rides_ref
-    commutes_ref = request.app.state.commutes_ref
-    if not rides_ref or not commutes_ref:
-        raise HTTPException(status_code=500, detail="Firestore not initialized")
-    
-    user_id = request.headers.get("X-User-ID")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Missing user ID")
-    
-    try:
-        # Get user's commute
-        commute_docs = commutes_ref.where("userId", "==", user_id).stream()
-        commute = None
-        for doc in commute_docs:
-            commute = Commute.model_validate(doc.to_dict())
-            break
-        
-        if not commute:
-            raise HTTPException(status_code=400, detail="No commute found, please create one first")
-        
-        return await get_available_rides(user_id, commute, max_distance, rides_ref, commutes_ref)
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Error retrieving available rides: {exc}")
 
 @router.get("/driver/{driver_id}", response_model=List[Ride])
 async def get_driver_rides(driver_id: str, request: Request):

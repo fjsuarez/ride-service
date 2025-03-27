@@ -5,7 +5,7 @@ from enum import Enum
 from uuid import uuid4
 
 class Location(BaseModel):
-    address: str
+    address: str | None = None
     latitude: float
     longitude: float
 

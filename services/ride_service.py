@@ -2,6 +2,7 @@ from models import Ride, RideRequestStatus
 from datetime import datetime
 from uuid import uuid4
 from .utils import get_driving_route_polyline
+from google.maps import routing_v2
 
 async def get_all_rides(rides_ref):
     """Get all rides from Firestore with validation error handling"""
@@ -65,7 +66,8 @@ async def create_new_ride(ride: Ride, rides_ref):
         end_coords = [ride.endLocation.latitude, ride.endLocation.longitude]
         
         try:
-            polyline = await get_driving_route_polyline(start_coords, end_coords)
+            async with routing_v2.RoutesAsyncClient() as client:
+                polyline = await get_driving_route_polyline(client, start_coords, end_coords)
             if polyline:
                 ride_data["ridePolyline"] = polyline
                 print(f"Route polyline generated for ride {ride.rideId}")
@@ -92,7 +94,8 @@ async def update_ride(ride_id: str, updates: dict, rides_ref):
     start_coords = [ride_data["startLocation"]["latitude"], ride_data["startLocation"]["longitude"]]
     end_coords = [ride_data["endLocation"]["latitude"], ride_data["endLocation"]["longitude"]]
     try:
-        polyline = await get_driving_route_polyline(start_coords, end_coords)
+        async with routing_v2.RoutesAsyncClient() as client:
+            polyline = await get_driving_route_polyline(client, start_coords, end_coords)
         if polyline:
             updates["ridePolyline"] = polyline
     except Exception:
@@ -175,22 +178,51 @@ async def get_available_rides(rider_id: str, commute, max_distance: float, rides
         active_rides = rides_ref.where("status", "==", "active").where(
             "availableSeats", ">", 0).stream()
         
+        # Create a mapping of ride IDs to their walking distances from the commute
+        # Convert distance from meters to kilometers
+        distance_map = {}
+        if commute.ride_distances:
+            for ride_distance in commute.ride_distances:
+                # Store distance in km (converting from meters)
+                distance_map[ride_distance.ride_id] = ride_distance.distance / 1000
+        
         rides_with_distance = []
         
         for ride_doc in active_rides:
             ride_data = ride_doc.to_dict()
+            ride_id = ride_data.get("rideId")
             
-            # Calculate walking distance (placeholder - would be replaced with actual calculation)
-            # For now, we'll just set a random distance for demonstration
-            import random
-            walking_distance = random.uniform(0.1, 5.0)  # km
-            
-            # Filter by maximum distance if provided
-            if max_distance and walking_distance > max_distance:
+            # Skip rides by the rider themselves
+            if ride_data.get("driverId") == rider_id:
                 continue
             
-            ride_data["walkingDistance"] = walking_distance
-            rides_with_distance.append(ride_data)
+            # Skip rides the rider is already part of
+            if ride_data.get("riders") and rider_id in ride_data.get("riders"):
+                continue
+                
+            # Check if we have a precalculated distance for this ride
+            if ride_id in distance_map:
+                walking_distance = distance_map[ride_id]
+                print(f"Ride {ride_id} has precalculated distance of {walking_distance} km")
+                print(f"Max distance: {max_distance}")
+                # Filter by maximum distance if provided
+                if max_distance and walking_distance > max_distance:
+                    continue
+                
+                # Add distance and route information to the ride data
+                ride_data["walkingDistance"] = walking_distance
+                
+                # Find the corresponding RideDistance object for entry/exit points and routes
+                for ride_distance in commute.ride_distances:
+                    if ride_distance.ride_id == ride_id:
+                        # Add entry and exit points for the map
+                        ride_data["entryPoint"] = ride_distance.entry_point.model_dump() if ride_distance.entry_point else None
+                        ride_data["exitPoint"] = ride_distance.exit_point.model_dump() if ride_distance.exit_point else None
+                        ride_data["entryPolyline"] = ride_distance.entry_polyline
+                        ride_data["exitPolyline"] = ride_distance.exit_polyline
+                        break
+                
+                rides_with_distance.append(ride_data)
         
         # Sort by walking distance
         rides_with_distance.sort(key=lambda x: x["walkingDistance"])

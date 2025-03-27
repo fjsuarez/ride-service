@@ -1,6 +1,7 @@
-from models import Commute, RideDistance
+from models import Commute, RideDistance, Location
 from datetime import datetime
 from .utils import find_closest_points_on_route_by_walking, get_walking_route_polyline
+from google.maps import routing_v2
 
 import logging 
 # Set up logging
@@ -85,22 +86,23 @@ async def create_new_commute(commute: Commute, commutes_ref, rides_ref):
                     
                     # Get walking polylines
                     logger.info(f"Getting walking routes for ride {ride_id}")
-                    entry_polyline = await get_walking_route_polyline(
-                        (commute.startLocation.latitude, commute.startLocation.longitude), 
-                        entry_point
-                    )
-                    exit_polyline = await get_walking_route_polyline(
-                        exit_point,
-                        (commute.endLocation.latitude, commute.endLocation.longitude)
-                    )
+                    async with routing_v2.RoutesAsyncClient() as client:
+                        entry_polyline = await get_walking_route_polyline(client,
+                            (commute.startLocation.latitude, commute.startLocation.longitude), 
+                            entry_point
+                        )
+                        exit_polyline = await get_walking_route_polyline(client,
+                            exit_point,
+                            (commute.endLocation.latitude, commute.endLocation.longitude)
+                        )
                     
                     # Create ride distance object
                     ride_distance = RideDistance(
                         ride_id=ride_id,
                         distance=total_walk_distance,
-                        entry_point=entry_point,
+                        entry_point=Location(latitude=entry_point[0], longitude=entry_point[1]),
                         entry_polyline=entry_polyline,
-                        exit_point=exit_point,
+                        exit_point=Location(latitude=exit_point[0], longitude=exit_point[1]),
                         exit_polyline=exit_polyline
                     )
                     ride_distances.append(ride_distance)
@@ -217,25 +219,26 @@ async def update_commute(commute_id: str, commute_update: Commute, commutes_ref,
                     logger.info(f"Generating walking routes for ride {ride_id}")
                     
                     try:
-                        logger.info(f"Getting entry walking route for ride {ride_id}")
-                        entry_polyline = await get_walking_route_polyline(
-                            (commute_update.startLocation.latitude, commute_update.startLocation.longitude),
-                            entry_point
-                        )
-                        
-                        logger.info(f"Getting exit walking route for ride {ride_id}")
-                        exit_polyline = await get_walking_route_polyline(
-                            exit_point,
-                            (commute_update.endLocation.latitude, commute_update.endLocation.longitude)
-                        )
+                        async with routing_v2.RoutesAsyncClient() as client:
+                            logger.info(f"Getting entry walking route for ride {ride_id}")
+                            entry_polyline = await get_walking_route_polyline(client,
+                                (commute_update.startLocation.latitude, commute_update.startLocation.longitude),
+                                entry_point
+                            )
+                            
+                            logger.info(f"Getting exit walking route for ride {ride_id}")
+                            exit_polyline = await get_walking_route_polyline(client,
+                                exit_point,
+                                (commute_update.endLocation.latitude, commute_update.endLocation.longitude)
+                            )
                         
                         # Create ride distance object
                         ride_distance = RideDistance(
                             ride_id=ride_id,
                             distance=total_walk_distance,
-                            entry_point=entry_point,
+                            entry_point=Location(latitude=entry_point[0], longitude=entry_point[1]),
                             entry_polyline=entry_polyline,
-                            exit_point=exit_point,
+                            exit_point=Location(latitude=exit_point[0], longitude=exit_point[1]),
                             exit_polyline=exit_polyline
                         )
                         ride_distances.append(ride_distance)
