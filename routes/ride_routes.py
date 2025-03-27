@@ -102,7 +102,7 @@ async def update_ride_endpoint(ride_id: str, ride_update: Ride, request: Request
         raise HTTPException(status_code=400, detail="Ride ID in path must match ride ID in body")
     
     try:
-        return await update_ride(ride_id, ride_update.model_dump(), rides_ref)
+        return await update_ride(ride_id, ride_update.model_dump(), rides_ref, request)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as exc:
