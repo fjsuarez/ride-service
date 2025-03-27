@@ -42,9 +42,12 @@ async def get_ride_by_id(ride_id: str, rides_ref):
     except Exception as exc:
         raise Exception(f"Error parsing ride document: {exc}")
 
-async def create_new_ride(ride: Ride, rides_ref):
+async def create_new_ride(ride: Ride, rides_ref, request):
+    client = request.app.state.routes_client
     """Create a new ride in Firestore"""
     ride_data = ride.model_dump()
+
+    client = request.app.state.routes_client
     
     # Check if ride already exists
     ride_ref = rides_ref.document(ride.rideId)
@@ -65,9 +68,8 @@ async def create_new_ride(ride: Ride, rides_ref):
         start_coords = [ride.startLocation.latitude, ride.startLocation.longitude]
         end_coords = [ride.endLocation.latitude, ride.endLocation.longitude]
         
-        try:
-            async with routing_v2.RoutesAsyncClient() as client:
-                polyline = await get_driving_route_polyline(client, start_coords, end_coords)
+        try: 
+            polyline = await get_driving_route_polyline(client, start_coords, end_coords)
             if polyline:
                 ride_data["ridePolyline"] = polyline
                 print(f"Route polyline generated for ride {ride.rideId}")
@@ -83,19 +85,21 @@ async def create_new_ride(ride: Ride, rides_ref):
     except Exception as exc:
         raise Exception(f"Error creating ride document: {exc}")
 
-async def update_ride(ride_id: str, updates: dict, rides_ref):
+async def update_ride(ride_id: str, updates: dict, rides_ref, request):
     """Update a ride in Firestore"""
     ride_ref = rides_ref.document(ride_id)
     ride_doc = ride_ref.get()
+    
     
     if not ride_doc.exists:
         raise ValueError(f"Ride {ride_id} not found")
     ride_data = ride_doc.to_dict()
     start_coords = [ride_data["startLocation"]["latitude"], ride_data["startLocation"]["longitude"]]
     end_coords = [ride_data["endLocation"]["latitude"], ride_data["endLocation"]["longitude"]]
+    
+    client = request.app.state.routes_client
     try:
-        async with routing_v2.RoutesAsyncClient() as client:
-            polyline = await get_driving_route_polyline(client, start_coords, end_coords)
+        polyline = await get_driving_route_polyline(client, start_coords, end_coords)
         if polyline:
             updates["ridePolyline"] = polyline
     except Exception:

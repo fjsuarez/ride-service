@@ -8,11 +8,12 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def create_new_commute(commute: Commute, commutes_ref, rides_ref):
+async def create_new_commute(commute: Commute, commutes_ref, rides_ref, request):
     """Create a new commute and populate it with ride_distances"""
     try:
         logger.info(f"Creating new commute with ID: {commute.commuteId}")
         
+        client = request.app.state.routes_client
         # Validate commute data
         if not commute.startLocation or not commute.endLocation:
             raise ValueError("Commute must have both start and end locations")
@@ -64,6 +65,7 @@ async def create_new_commute(commute: Commute, commutes_ref, rides_ref):
                 # Find closest points
                 try:
                     result = await find_closest_points_on_route_by_walking(
+                        request=request,
                         origin_A_coord=(start_lat, start_lng),
                         destination_B_coord=(end_lat, end_lng),
                         origin_X_coord=(commute.startLocation.latitude, commute.startLocation.longitude),
@@ -86,15 +88,14 @@ async def create_new_commute(commute: Commute, commutes_ref, rides_ref):
                     
                     # Get walking polylines
                     logger.info(f"Getting walking routes for ride {ride_id}")
-                    async with routing_v2.RoutesAsyncClient() as client:
-                        entry_polyline = await get_walking_route_polyline(client,
-                            (commute.startLocation.latitude, commute.startLocation.longitude), 
-                            entry_point
-                        )
-                        exit_polyline = await get_walking_route_polyline(client,
-                            exit_point,
-                            (commute.endLocation.latitude, commute.endLocation.longitude)
-                        )
+                    entry_polyline = await get_walking_route_polyline(client,
+                        (commute.startLocation.latitude, commute.startLocation.longitude), 
+                        entry_point
+                    )
+                    exit_polyline = await get_walking_route_polyline(client,
+                        exit_point,
+                        (commute.endLocation.latitude, commute.endLocation.longitude)
+                    )
                     
                     # Create ride distance object
                     ride_distance = RideDistance(
@@ -132,11 +133,11 @@ async def create_new_commute(commute: Commute, commutes_ref, rides_ref):
         logger.error(f"Failed to create commute: {str(e)}", exc_info=True)
         raise
 
-async def update_commute(commute_id: str, commute_update: Commute, commutes_ref, rides_ref):
+async def update_commute(commute_id: str, commute_update: Commute, commutes_ref, rides_ref, request):
     """Update an existing commute in Firestore and recalculate ride distances"""
     try:
         logger.info(f"Updating commute with ID: {commute_id}")
-        
+        client = request.app.state.routes_client
         # Validate commute data
         if not commute_update.startLocation or not commute_update.endLocation:
             logger.error("Cannot update commute: Missing start or end location")
@@ -195,11 +196,13 @@ async def update_commute(commute_id: str, commute_update: Commute, commutes_ref,
                 # Find closest points
                 try:
                     result = await find_closest_points_on_route_by_walking(
+                        request=request,
                         origin_A_coord=(start_lat, start_lng),
                         destination_B_coord=(end_lat, end_lng),
                         origin_X_coord=(commute_update.startLocation.latitude, commute_update.startLocation.longitude),
                         destination_Y_coord=(commute_update.endLocation.latitude, commute_update.endLocation.longitude),
-                        encoded_polyline=encoded_polyline
+                        encoded_polyline=encoded_polyline,
+                        sampling_distance_meters=100
                     )
                     
                     if not result:
@@ -219,18 +222,17 @@ async def update_commute(commute_id: str, commute_update: Commute, commutes_ref,
                     logger.info(f"Generating walking routes for ride {ride_id}")
                     
                     try:
-                        async with routing_v2.RoutesAsyncClient() as client:
-                            logger.info(f"Getting entry walking route for ride {ride_id}")
-                            entry_polyline = await get_walking_route_polyline(client,
-                                (commute_update.startLocation.latitude, commute_update.startLocation.longitude),
-                                entry_point
-                            )
-                            
-                            logger.info(f"Getting exit walking route for ride {ride_id}")
-                            exit_polyline = await get_walking_route_polyline(client,
-                                exit_point,
-                                (commute_update.endLocation.latitude, commute_update.endLocation.longitude)
-                            )
+                        logger.info(f"Getting entry walking route for ride {ride_id}")
+                        entry_polyline = await get_walking_route_polyline(client,
+                            (commute_update.startLocation.latitude, commute_update.startLocation.longitude),
+                            entry_point
+                        )
+                        
+                        logger.info(f"Getting exit walking route for ride {ride_id}")
+                        exit_polyline = await get_walking_route_polyline(client,
+                            exit_point,
+                            (commute_update.endLocation.latitude, commute_update.endLocation.longitude)
+                        )
                         
                         # Create ride distance object
                         ride_distance = RideDistance(

@@ -71,7 +71,7 @@ async def get_walking_distance(client, origin_coord, destination_coord):
         print(f"Error getting walking distance from {origin_coord} to {destination_coord}: {type(e).__name__} - {e}")
         return float('inf')
 
-async def find_closest_points_on_route_by_walking(
+async def find_closest_points_on_route_by_walking(request,
     origin_A_coord,
     destination_B_coord,
     origin_X_coord,
@@ -79,44 +79,44 @@ async def find_closest_points_on_route_by_walking(
     encoded_polyline,
     sampling_distance_meters=100 # Sample approx every 100 meters
 ):
-    async with routing_v2.RoutesAsyncClient() as client:
-        if not encoded_polyline:
-            try:
-                encoded_polyline = await get_driving_route_polyline(client, origin_A_coord, destination_B_coord)
-            except Exception as e:
-                print(f"Error getting driving route polyline: {type(e).__name__} - {e}")
-                return None, None
+    client = request.app.state.routes_client
+    if not encoded_polyline:
+        try:
+            encoded_polyline = await get_driving_route_polyline(client, origin_A_coord, destination_B_coord)
+        except Exception as e:
+            print(f"Error getting driving route polyline: {type(e).__name__} - {e}")
+            return None, None
 
-        decoded_coords = decode_polyline(encoded_polyline)
-        sample_coords = sample_points_along_polyline(decoded_coords, sampling_distance_meters)
-        if not sample_coords:
-                return None, None
-        
-        min_total_walk_dist = float('inf')
-        best_entry_point_coord = None
-        best_exit_point_coord = None
-        valid_pairs_evaluated = 0
+    decoded_coords = decode_polyline(encoded_polyline)
+    sample_coords = sample_points_along_polyline(decoded_coords, sampling_distance_meters)
+    if not sample_coords:
+            return None, None
+    
+    min_total_walk_dist = float('inf')
+    best_entry_point_coord = None
+    best_exit_point_coord = None
+    valid_pairs_evaluated = 0
 
-        tasks_X = [get_walking_distance(client, origin_X_coord, p_coord) for p_coord in sample_coords]
-        walking_distances_X = await asyncio.gather(*tasks_X, return_exceptions=True)
-        tasks_Y = [get_walking_distance(client, p_coord, destination_Y_coord) for p_coord in sample_coords]
-        walking_distances_Y = await asyncio.gather(*tasks_Y, return_exceptions=True)
-        
-        for i in range(len(walking_distances_X)):
-            if isinstance(walking_distances_X[i], Exception) or walking_distances_X[i] == float('inf'):
+    tasks_X = [get_walking_distance(client, origin_X_coord, p_coord) for p_coord in sample_coords]
+    walking_distances_X = await asyncio.gather(*tasks_X, return_exceptions=True)
+    tasks_Y = [get_walking_distance(client, p_coord, destination_Y_coord) for p_coord in sample_coords]
+    walking_distances_Y = await asyncio.gather(*tasks_Y, return_exceptions=True)
+    
+    for i in range(len(walking_distances_X)):
+        if isinstance(walking_distances_X[i], Exception) or walking_distances_X[i] == float('inf'):
+            continue
+        for j in range(len(walking_distances_Y)):
+            if isinstance(walking_distances_Y[j], Exception) or walking_distances_Y[j] == float('inf'):
                 continue
-            for j in range(len(walking_distances_Y)):
-                if isinstance(walking_distances_Y[j], Exception) or walking_distances_Y[j] == float('inf'):
-                    continue
-                current_total_walk_dist = walking_distances_X[i] + walking_distances_Y[j]
-                valid_pairs_evaluated += 1
-                if current_total_walk_dist < min_total_walk_dist:
-                    min_total_walk_dist = current_total_walk_dist
-                    best_entry_point_coord = sample_coords[i]
-                    best_exit_point_coord = sample_coords[j]
-        
-        if best_entry_point_coord:
-            return best_entry_point_coord, best_exit_point_coord, min_total_walk_dist, encoded_polyline
-        else:
-            print("   Could not determine the best entry and exit points.")
-            return None, None, float('inf'), None
+            current_total_walk_dist = walking_distances_X[i] + walking_distances_Y[j]
+            valid_pairs_evaluated += 1
+            if current_total_walk_dist < min_total_walk_dist:
+                min_total_walk_dist = current_total_walk_dist
+                best_entry_point_coord = sample_coords[i]
+                best_exit_point_coord = sample_coords[j]
+    
+    if best_entry_point_coord:
+        return best_entry_point_coord, best_exit_point_coord, min_total_walk_dist, encoded_polyline
+    else:
+        print("   Could not determine the best entry and exit points.")
+        return None, None, float('inf'), None

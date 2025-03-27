@@ -35,7 +35,7 @@ async def create_ride(ride: Ride, request: Request):
         raise HTTPException(status_code=403, detail="You can only create rides for yourself")
 
     try:
-        return await create_new_ride(ride, rides_ref)
+        return await create_new_ride(ride, rides_ref, request)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as exc:

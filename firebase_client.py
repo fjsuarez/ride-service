@@ -3,6 +3,8 @@ from fastapi import FastAPI
 import firebase_admin
 from firebase_admin import credentials, firestore
 from config import settings
+from google.maps import routing_v2
+from google.oauth2 import service_account
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,6 +19,13 @@ async def lifespan(app: FastAPI):
         requests_ref = db.collection("ride_requests")
         commutes_ref = db.collection("commutes")
         print("Firebase Admin SDK initialized successfully.")
+
+        routes_credentials = service_account.Credentials.from_service_account_file(
+            'credentials.json',
+            scopes=['https://www.googleapis.com/auth/cloud-platform']
+        )
+        routes_client = routing_v2.RoutesAsyncClient(credentials=routes_credentials)
+        print("Google Maps Routes API client initialized successfully.")
     except Exception as e:
         print(f"Error initializing Firebase Admin SDK: {e}")
         rides_ref = None
@@ -30,6 +39,7 @@ async def lifespan(app: FastAPI):
     app.state.commutes_ref = commutes_ref
     app.state.db = db
     app.state.firebase_app = firebase_app
+    app.state.routes_client = routes_client
     yield
 
     # --- Shutdown ---

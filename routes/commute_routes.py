@@ -55,7 +55,7 @@ async def create_commute(commute: Commute, request: Request):
         raise HTTPException(status_code=403, detail="You can only create commutes for yourself")
     
     try:
-        return await create_new_commute(commute, commutes_ref, rides_ref)
+        return await create_new_commute(commute, commutes_ref, rides_ref, request)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as exc:
@@ -78,7 +78,7 @@ async def update_commute_endpoint(commute_id: str, commute_update: Commute, requ
         raise HTTPException(status_code=400, detail="Commute ID in path must match commute ID in body")
     
     try:
-        return await update_commute(commute_id, commute_update, commutes_ref, rides_ref)
+        return await update_commute(commute_id, commute_update, commutes_ref, rides_ref, request)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as exc:
